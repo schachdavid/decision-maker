@@ -1,6 +1,6 @@
 # decision_maker
 
-Decision maker app help you to make decisions.
+Simple flutter app whichs helps you to make the best decision.
 
 ## Getting Started
 
