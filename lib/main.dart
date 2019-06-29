@@ -1,18 +1,19 @@
-import 'dart:convert';
-import 'dart:collection';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-import 'src/plainObjects/decision.dart';
-import 'src/DecisionOption.dart';
-import 'src/newOptionDialog.dart';
+import 'src/database/db.dart';
+import 'src/database/models/DecisionModel.dart';
+import 'src/database/models/ProArgumentModel.dart';
+import 'src/questionDetails.dart';
 
 var uuid = new Uuid();
 
-void main() => runApp(MyApp());
+void main() {
+  runApp(MyApp());
+}
+
+// void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -24,125 +25,66 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Open Sans',
         brightness: Brightness.dark,
       ),
-      home: MyHomePage(title: 'Worüber soll ich meine BA schreiben?'),
+      home: QuestionsOverwiew(title: 'Decisionmaker'),
+      routes: <String, WidgetBuilder>{
+        '/home': (BuildContext context) =>
+            QuestionsOverwiew(title: 'Decisionmaker'),
+        '/detail': (BuildContext context) =>
+            QuestionDetails(title: 'Decisionmaker'),
+      },
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+class QuestionsOverwiew extends StatefulWidget {
+  QuestionsOverwiew({Key key, this.title}) : super(key: key);
 
   final String title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _QuestionsOverwiewState createState() => _QuestionsOverwiewState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  HashMap<String, Decision> decisions = new HashMap<String, Decision>();
-
-  Decision newDecisionOption;
-
-  final String decisionPersistentKey = 'decisions';
-
-  final GlobalKey<FormState> formKey = new GlobalKey<FormState>();
-
-  void _updateDecisions(HashMap<String, Decision> newDecisions) {
-    setState(() {
-      decisions = newDecisions;
-    });
-    persistDecisions();
-  }
-
-  updateDecision(Decision decision) {
-    HashMap<String, Decision> newDecisions = new HashMap.from(decisions);
-    newDecisions[decision.key] = decision;
-    _updateDecisions(newDecisions);
-  }
-
-  persistDecisions() async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    sp.setString(decisionPersistentKey, jsonEncode(decisions.values.toList()));
-  }
-
-  loadPersistentDecisions() async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    HashMap<String, Decision> newDecisions = new HashMap<String, Decision>();
-    jsonDecode(sp.getString(decisionPersistentKey)).forEach((map) {
-      Decision decision = new Decision.fromJson(map);
-      newDecisions[decision.key] = decision;
-    });
-    _updateDecisions(newDecisions);
-  }
-
-  int calcScore(Decision decision) {
-    int proArgsLength = decision.proArgs != null ? decision.proArgs.length : 0;
-    int conArgsLength = decision.conArgs != null ? decision.conArgs.length : 0;
-    return proArgsLength - conArgsLength;
-  }
-
-  void addDecisionOption(Decision newDecision) {
-    HashMap<String, Decision> newDecisions = new HashMap.from(decisions);
-    newDecision.key = uuid.v1();
-    newDecisions[newDecision.key] = newDecision;
-    _updateDecisions(newDecisions);
-  }
-
-  deleteOption(Decision decisionToDelete) {
-    HashMap<String, Decision> newDecisions = new HashMap.from(decisions);
-    newDecisions.remove(decisionToDelete.key);
-    _updateDecisions(newDecisions);
-  }
-
+class _QuestionsOverwiewState extends State<QuestionsOverwiew> {
   _displayDialog(BuildContext context) async {
-    newDecisionOption = new Decision();
-    return showDialog(
-        context: context,
-        builder: (context) {
-          return NewOptionDialog(
-              newDecisionOption: newDecisionOption,
-              addDecisionOption: addDecisionOption,
+    await DBProvider.db.clean();
+    // Navigator.pushNamed(context, '/detail');
+    Decision newDecision =
+        new Decision(title: "Some random option.", notes: "some note");
+    var res = await DBProvider.db.newDecision(newDecision);
+    DBProvider.db.getAllDecisions().then((decisions) {
+      decisions.forEach((decision) => print(decision));
+    });
 
-              formKey: formKey);
-        });
+    ProArgument newProArg =
+        new ProArgument(text: "Some Pro Arg.", decisionId: res);
+    await DBProvider.db.newProArgument(newProArg);
+    print("Response: $res");
+    DBProvider.db.getAllProArguments().then((proArgs) {
+      proArgs.forEach((proArg) => print(proArg));
+    });
   }
 
   initState() {
     super.initState();
-    loadPersistentDecisions();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    List<Decision> sortedDecisions = decisions.values.toList();
-    sortedDecisions.sort((a, b) => calcScore(a).compareTo(calcScore(b)));
-    sortedDecisions = sortedDecisions.reversed.toList();
-
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
       body: SingleChildScrollView(
-        child: Column(
-          children: sortedDecisions
-              .map<Widget>((decision) => DecisionOption(
-                  decision: decision, updateDecision: updateDecision, deleteDecision: () => print("deleting"),))
-              .toList(),
-        ),
-      ),
+          child: Container(
+        margin: EdgeInsets.only(bottom: 80.0),
+        child: Column(),
+      )),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _displayDialog(context),
         tooltip: 'Increment',
         child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 }

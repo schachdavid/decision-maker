@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'plainObjects/decision.dart';
 
 class NewOptionDialog extends StatelessWidget {
-  NewOptionDialog({@required this.newDecisionOption, @required this.addDecisionOption, @required this.formKey});
+  NewOptionDialog(
+      {@required this.newDecisionOption,
+      @required this.addDecisionOption,
+      @required this.formKey});
 
   final Decision newDecisionOption;
   final addDecisionOption;
   final formKey;
 
-   void _submitForm() {
+  void _submitForm() {
     final FormState form = formKey.currentState;
     newDecisionOption.proArgs = [];
     newDecisionOption.conArgs = [];
@@ -20,18 +23,20 @@ class NewOptionDialog extends StatelessWidget {
     return AlertDialog(
       title: Text('New Option'),
       content: new Form(
-        key: this.formKey,
-        child: new Column(
-          children: <Widget>[
-            new TextFormField(
-                decoration: new InputDecoration(labelText: 'Title'),
-                onSaved: (val) => newDecisionOption.title = val),
-            new TextFormField(
-                decoration: new InputDecoration(labelText: 'Notes'),
-                onSaved: (val) => newDecisionOption.notes = val),
-          ],
-        ),
-      ),
+          key: this.formKey,
+          child: new Container(
+            height: 130.0,
+            child: new Column(
+              children: <Widget>[
+                new TextFormField(
+                    decoration: new InputDecoration(labelText: 'Title'),
+                    onSaved: (val) => newDecisionOption.title = val),
+                new TextFormField(
+                    decoration: new InputDecoration(labelText: 'Notes'),
+                    onSaved: (val) => newDecisionOption.notes = val),
+              ],
+            ),
+          )),
       actions: <Widget>[
         new FlatButton(
           child: new Text('CANCEL'),
