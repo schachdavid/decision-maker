@@ -4,7 +4,7 @@ ConArgument ConArgumentFromMap(String str) => ConArgument.fromMap(json.decode(st
 
 String ConArgumentToMap(ConArgument data) => json.encode(data.toMap());
 
-class ConArgument {
+class ConArgumentDAO {
   String text;
   int id;
   int decisionId;

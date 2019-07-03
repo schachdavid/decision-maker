@@ -3,9 +3,9 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:io';
 
-import './models/DecisionModel.dart';
-import './models/ProArgumentModel.dart';
-import './models/ConArgumentModel.dart';
+import './models/DecisionDAO.dart';
+import './models/ProArgumentDAO.dart';
+import './models/ConArgumentDAO.dart';
 
 class DBProvider {
   DBProvider._();
@@ -57,7 +57,6 @@ class DBProvider {
     path = join(documentsDirectory.path, "decision_maker3.db");
     deleteDatabase(path);
   }
-  
 
   newDecision(Decision newDecision) async {
     final db = await database;
@@ -69,6 +68,12 @@ class DBProvider {
     newDecision.id = id;
     var res = await db.insert("decision", newDecision.toMap());
     return res;
+  }
+
+  getDecision(int id) async {
+    final db = await database;
+    var res =await  db.query("Decision", where: "id = ?", whereArgs: [id]);
+    return res.isNotEmpty ? Decision.fromMap(res.first) : Null ;
   }
 
   Future<List<Decision>> getAllDecisions() async {
@@ -94,5 +99,49 @@ class DBProvider {
     List<ProArgument> list =
         res.isNotEmpty ? res.map((c) => ProArgument.fromMap(c)).toList() : [];
     return list;
+  }
+
+  Future<List<ProArgument>> getProArgumentsForDecision(int decisionId) async {
+    final db = await database;
+    var res = await db.query("pro_argument",
+        where: "decision_id = ?", whereArgs: [decisionId]);
+    List<ProArgument> list =
+        res.isNotEmpty ? res.map((c) => ProArgument.fromMap(c)).toList() : [];
+    return list;
+  }
+
+  newConArgument(ConArgument newConArgument) async {
+    final db = await database;
+    var table = await db.rawQuery("SELECT MAX(id)+1 as id FROM con_argument");
+    int id = table.first["id"];
+    newConArgument.id = id;
+    var res = await db.insert("con_argument", newConArgument.toMap());
+    return res;
+  }
+
+  Future<List<ConArgument>> getAllConArguments() async {
+    final db = await database;
+    var res = await db.query("con_argument");
+    List<ConArgument> list =
+        res.isNotEmpty ? res.map((c) => ConArgument.fromMap(c)).toList() : [];
+    return list;
+  }
+
+  Future<List<ConArgument>> getConArgumentsForDecision(int decisionId) async {
+    final db = await database;
+    var res = await db.query("con_argument",
+        where: "decision_id = ?", whereArgs: [decisionId]);
+    List<ConArgument> list =
+        res.isNotEmpty ? res.map((c) => ConArgument.fromMap(c)).toList() : [];
+    return list;
+  }
+
+  Future<int> getScore(int decisionId) async {
+    final db = await database;
+    var res_pro_args = await db.query("pro_argument",
+        where: "decision_id = ?", whereArgs: [decisionId]);
+    var res_con_args = await db.query("con_argument",
+        where: "decision_id = ?", whereArgs: [decisionId]);
+    return res_pro_args.length - res_con_args.length;
   }
 }
