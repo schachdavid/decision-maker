@@ -1,4 +1,8 @@
+import 'package:decision_maker/src/plainObjects/conArgument.dart';
+import 'package:decision_maker/src/plainObjects/proArgument.dart';
+import 'package:decision_maker/src/state/decisionsState.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'addButton.dart';
 import 'decisionOptionMenu.dart';
@@ -28,24 +32,24 @@ class DecisionOption extends StatelessWidget {
         });
   }
 
-  addProArg(String argument) {
+  addProArg(ProArgument argument) {
     Decision newDecision = new Decision(
         title: decision.title,
         proArgs: decision.proArgs,
         conArgs: decision.conArgs,
         notes: decision.notes,
-        key: decision.key);
+        id: decision.id);
     newDecision.proArgs.add(argument);
     updateDecision(newDecision);
   }
 
-  addConArg(String argument) {
+  addConArg(ConArgument argument) {
     Decision newDecision = new Decision(
         title: decision.title,
         proArgs: decision.proArgs,
         conArgs: decision.conArgs,
         notes: decision.notes,
-        key: decision.key);
+        id: decision.id);
     newDecision.conArgs.add(argument);
     updateDecision(newDecision);
   }
@@ -56,7 +60,7 @@ class DecisionOption extends StatelessWidget {
         proArgs: decision.proArgs,
         conArgs: decision.conArgs,
         notes: decision.notes,
-        key: decision.key);
+        id: decision.id);
     newDecision.conArgs.removeAt(index);
     updateDecision(newDecision);
   }
@@ -67,7 +71,7 @@ class DecisionOption extends StatelessWidget {
         proArgs: decision.proArgs,
         conArgs: decision.conArgs,
         notes: decision.notes,
-        key: decision.key);
+        id: decision.id);
     newDecision.proArgs.removeAt(index);
     updateDecision(newDecision);
   }
@@ -75,8 +79,8 @@ class DecisionOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String notes = decision.notes;
-    List<String> proArgs = decision.proArgs;
-    List<String> conArgs = decision.conArgs;
+    List<ProArgument> proArgs = decision.proArgs;
+    List<ConArgument> conArgs = decision.conArgs;
     String text = decision.title;
 
     String score = (proArgs.length - conArgs.length).toString();
@@ -90,24 +94,14 @@ class DecisionOption extends StatelessWidget {
 
     List<Widget> proArgsWidgets = new List<Widget>();
     for(var i = 0; i < proArgs.length; i++){
-        proArgsWidgets.add(new Argument(key: ObjectKey(proArgs[i]),text: proArgs[i], onDelete: () => deleteProArgument(i),));
+        proArgsWidgets.add(new Argument(key: ObjectKey(proArgs[i]),text: proArgs[i].text, onDelete: () => deleteProArgument(i),));
     }
-
 
     List<Widget> conArgsWidgets = new List<Widget>();
     for(var i = 0; i < conArgs.length; i++){
-        conArgsWidgets.add(new Argument(key: ObjectKey(conArgs[i]),text: conArgs[i], onDelete: () => deleteConArgument(i),));
+        conArgsWidgets.add(new Argument(key: ObjectKey(conArgs[i]),text: conArgs[i].text, onDelete: () => deleteConArgument(i),));
     }
     
-
-
-    // List<Widget> proArgsWidgets = proArgs != null
-    //     ? proArgs.map<Widget>((arg) => Argument(key: ObjectKey(arg))).toList()
-    //     : [];
-
-    // List<Widget> conArgsWidgets = conArgs != null
-    //     ? conArgs.map<Widget>((arg) => Argument(text: arg)).toList()
-    //     : [];
 
     return Container(
       width: MediaQuery.of(context).size.width,
@@ -141,7 +135,7 @@ class DecisionOption extends StatelessWidget {
                           Text('Pro'),
                           AddButton(
                               onPress: () =>
-                                  _displayDialog(context, addProArg, "Pro Argument")),
+                                  _displayDialog(context, Provider.of<DecisionsState>(context).addProArgForDecisionFactory(decision), "Pro Argument")),
                         ])),
                   )),
               Container(
@@ -158,7 +152,7 @@ class DecisionOption extends StatelessWidget {
                           Text('Con'),
                           AddButton(
                               onPress: () =>
-                                  _displayDialog(context, addConArg, "Con Argument")),
+                                  _displayDialog(context, Provider.of<DecisionsState>(context).addConArgForDecisionFactory(decision), "Con Argument")),
                         ])),
                   )),
               Container(

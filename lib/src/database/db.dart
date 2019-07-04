@@ -1,15 +1,22 @@
+import 'package:decision_maker/src/database/dao/ConArgumentDAO.dart';
+import 'package:decision_maker/src/database/dao/DecisionDao.dart';
+import 'package:decision_maker/src/database/dao/ProArgumentDao.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:io';
 
-import './models/DecisionDAO.dart';
-import './models/ProArgumentDAO.dart';
-import './models/ConArgumentDAO.dart';
+import '../plainObjects/conArgument.dart';
+import '../plainObjects/decision.dart';
+import '../plainObjects/proArgument.dart';
 
 class DBProvider {
   DBProvider._();
   static final DBProvider db = DBProvider._();
+
+  static final DecisionDao _decisionDao = DecisionDao();
+  static final ProArgumentDao _proArgumentDao = ProArgumentDao();
+  static final ConArgumentDao _conArgumentDao = ConArgumentDao();
 
   static Database _database;
 
@@ -23,7 +30,7 @@ class DBProvider {
 
   initDB() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, "decision_maker3.db");
+    String path = join(documentsDirectory.path, "decision_maker6.db");
     return await openDatabase(path, version: 1, onOpen: (db) {},
         onCreate: (Database db, int version) async {
       await db.execute("PRAGMA foreign_keys = ON;");
@@ -36,13 +43,13 @@ class DBProvider {
           "id INTEGER PRIMARY KEY,"
           "text TEXT,"
           "decision_id INTEGER,"
-          "FOREIGN KEY (decision_id) REFERENCES decision(id)"
+          "FOREIGN KEY (decision_id) REFERENCES decision(id) ON DELETE CASCADE"
           ")");
       await db.execute("CREATE TABLE con_argument ("
           "id INTEGER PRIMARY KEY,"
           "text TEXT,"
           "decision_id INTEGER,"
-          "FOREIGN KEY (decision_id) REFERENCES decision(id)"
+          "FOREIGN KEY (decision_id) REFERENCES decision(id) ON DELETE CASCADE"
           ")");
     });
   }
@@ -51,36 +58,44 @@ class DBProvider {
   clean() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, "decision_maker.db");
-    deleteDatabase(path);
+    await deleteDatabase(path);
     path = join(documentsDirectory.path, "decision_maker2.db");
-    deleteDatabase(path);
+    await deleteDatabase(path);
     path = join(documentsDirectory.path, "decision_maker3.db");
-    deleteDatabase(path);
+    await deleteDatabase(path);
   }
 
   newDecision(Decision newDecision) async {
     final db = await database;
+
     var tmp = await db.rawQuery("SELECT * FROM decision");
     print(tmp);
 
     var table = await db.rawQuery("SELECT MAX(id)+1 as id FROM decision");
     int id = table.first["id"];
     newDecision.id = id;
-    var res = await db.insert("decision", newDecision.toMap());
+    var res = await db.insert("decision", _decisionDao.toMap(newDecision));
     return res;
   }
 
   getDecision(int id) async {
     final db = await database;
-    var res =await  db.query("Decision", where: "id = ?", whereArgs: [id]);
-    return res.isNotEmpty ? Decision.fromMap(res.first) : Null ;
+    var res = await db.query("Decision", where: "id = ?", whereArgs: [id]);
+    return res.isNotEmpty ? _decisionDao.fromMap(res.first) : Null;
+  }
+
+  deleteDecision(int id) async {
+    final db = await database;
+    await db.execute("PRAGMA foreign_keys = ON;");
+    var res = await db.delete("decision", where: "id = ?", whereArgs: [id]);
+    return res;
   }
 
   Future<List<Decision>> getAllDecisions() async {
     final db = await database;
     var res = await db.query("decision");
     List<Decision> list =
-        res.isNotEmpty ? res.map((c) => Decision.fromMap(c)).toList() : [];
+        res.isNotEmpty ? res.map((c) => _decisionDao.fromMap(c)).toList() : [];
     return list;
   }
 
@@ -89,15 +104,17 @@ class DBProvider {
     var table = await db.rawQuery("SELECT MAX(id)+1 as id FROM pro_argument");
     int id = table.first["id"];
     newProArgument.id = id;
-    var res = await db.insert("pro_argument", newProArgument.toMap());
+    var res =
+        await db.insert("pro_argument", _proArgumentDao.toMap(newProArgument));
     return res;
   }
 
   Future<List<ProArgument>> getAllProArguments() async {
     final db = await database;
     var res = await db.query("pro_argument");
-    List<ProArgument> list =
-        res.isNotEmpty ? res.map((c) => ProArgument.fromMap(c)).toList() : [];
+    List<ProArgument> list = res.isNotEmpty
+        ? res.map((c) => _proArgumentDao.fromMap(c)).toList()
+        : [];
     return list;
   }
 
@@ -105,8 +122,9 @@ class DBProvider {
     final db = await database;
     var res = await db.query("pro_argument",
         where: "decision_id = ?", whereArgs: [decisionId]);
-    List<ProArgument> list =
-        res.isNotEmpty ? res.map((c) => ProArgument.fromMap(c)).toList() : [];
+    List<ProArgument> list = res.isNotEmpty
+        ? res.map((c) => _proArgumentDao.fromMap(c)).toList()
+        : [];
     return list;
   }
 
@@ -115,33 +133,34 @@ class DBProvider {
     var table = await db.rawQuery("SELECT MAX(id)+1 as id FROM con_argument");
     int id = table.first["id"];
     newConArgument.id = id;
-    var res = await db.insert("con_argument", newConArgument.toMap());
+    var res =
+        await db.insert("con_argument", _conArgumentDao.toMap(newConArgument));
     return res;
   }
 
   Future<List<ConArgument>> getAllConArguments() async {
     final db = await database;
     var res = await db.query("con_argument");
-    List<ConArgument> list =
-        res.isNotEmpty ? res.map((c) => ConArgument.fromMap(c)).toList() : [];
+    List<ConArgument> list = res.isNotEmpty
+        ? res.map((c) => _conArgumentDao.fromMap(c)).toList()
+        : [];
     return list;
+  }
+
+   deleteConArgument(int id) async {
+    final db = await database;
+    await db.execute("PRAGMA foreign_keys = ON;");
+    var res = await db.delete("con_argument", where: "id = ?", whereArgs: [id]);
+    return res;
   }
 
   Future<List<ConArgument>> getConArgumentsForDecision(int decisionId) async {
     final db = await database;
     var res = await db.query("con_argument",
         where: "decision_id = ?", whereArgs: [decisionId]);
-    List<ConArgument> list =
-        res.isNotEmpty ? res.map((c) => ConArgument.fromMap(c)).toList() : [];
+    List<ConArgument> list = res.isNotEmpty
+        ? res.map((c) => _conArgumentDao.fromMap(c)).toList()
+        : [];
     return list;
-  }
-
-  Future<int> getScore(int decisionId) async {
-    final db = await database;
-    var res_pro_args = await db.query("pro_argument",
-        where: "decision_id = ?", whereArgs: [decisionId]);
-    var res_con_args = await db.query("con_argument",
-        where: "decision_id = ?", whereArgs: [decisionId]);
-    return res_pro_args.length - res_con_args.length;
   }
 }

@@ -1,12 +1,12 @@
+import 'package:decision_maker/src/plainObjects/argument.dart';
 import 'package:flutter/material.dart';
-import 'plainObjects/decision.dart';
 
 class NewArgumentDialog extends StatelessWidget {
   NewArgumentDialog({@required this.addArgument,@required this.title, @required this.formKey});
 
-  String argument;
+  final Argument argument = Argument();
   final String title;
-  final addArgument;
+  final Function addArgument;
   final formKey;
 
   void _submitForm() {
@@ -26,7 +26,7 @@ class NewArgumentDialog extends StatelessWidget {
               children: <Widget>[
                 new TextFormField(
                     decoration: new InputDecoration(labelText: 'text'),
-                    onSaved: (val) => argument = val),
+                    onSaved: (val) => argument.text = val),
               ],
             )),
       ),

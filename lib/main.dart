@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:uuid/uuid.dart';
+import 'package:provider/provider.dart';
 
-import 'src/database/db.dart';
-import 'src/database/models/DecisionModel.dart' as Model;
-import 'src/plainObjects/decision.dart';
-import 'src/database/models/ProArgumentModel.dart';
-import 'src/database/models/ConArgumentModel.dart';
+import 'package:decision_maker/src/state/decisionsState.dart';
+import 'package:decision_maker/src/database/db.dart';
+import 'package:decision_maker/src/plainObjects/decision.dart';
+import 'package:decision_maker/src/plainObjects/proArgument.dart';
+import 'package:decision_maker/src/plainObjects/conArgument.dart';
 
 import 'src/questionDetails.dart';
 
@@ -51,42 +52,16 @@ class QuestionsOverwiew extends StatefulWidget {
 }
 
 class _QuestionsOverwiewState extends State<QuestionsOverwiew> {
-  _displayDialog(BuildContext context) async {
-    await DBProvider.db.clean();
-    Model.Decision newDecision =
-        new Model.Decision(title: "Some random option.", notes: "some note");
-    var res = await DBProvider.db.newDecision(newDecision);
-    DBProvider.db.getAllDecisions().then((decisions) {
-      decisions.forEach((decision) => print(decision));
-    });
-
-    ProArgument newProArg =
-        new ProArgument(text: "Some Pro Arg.", decisionId: res);
-    await DBProvider.db.newProArgument(newProArg);
-    print("Response: $res");
-    DBProvider.db.getAllProArguments().then((proArgs) {
-      proArgs.forEach((proArg) => print(proArg));
-    });
-
-    List<Model.Decision> decisions = await DBProvider.db.getAllDecisions();
-    List<Decision> decisionsWithArgs = await Future.wait(decisions.map((decision) async {
-      List<ProArgument> proArgs = await DBProvider.db.getProArgumentsForDecision(decision.id);
-      List<ConArgument> conArgs = await DBProvider.db.getConArgumentsForDecision(decision.id);
-      return new Decision(
-          title: decision.title,
-          notes: decision.notes,
-          proArgs: proArgs.map((arg) => arg.text).toList(),
-          conArgs: conArgs.map((arg) => arg.text).toList());
-    }).toList());
-    
-
-    
+  _displayDialog(BuildContext context) {
     Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              new QuestionDetails(decisions: decisionsWithArgs),
-        ));
+            builder: (context) => ChangeNotifierProvider(
+                builder: (context) => DecisionsState(),
+                child: Consumer<DecisionsState>(
+                    builder: (context, decisionsState, child) {
+                  return QuestionDetails(decisions: decisionsState.decisions);
+                }))));
   }
 
   initState() {
@@ -95,19 +70,21 @@ class _QuestionsOverwiewState extends State<QuestionsOverwiew> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: SingleChildScrollView(
-          child: Container(
-        margin: EdgeInsets.only(bottom: 80.0),
-        child: Column(),
-      )),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _displayDialog(context),
-        child: Icon(Icons.add),
-      ),
-    );
+    return ChangeNotifierProvider(
+        builder: (context) => DecisionsState(),
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(widget.title),
+          ),
+          body: SingleChildScrollView(
+              child: Container(
+            margin: EdgeInsets.only(bottom: 80.0),
+            child: Column(),
+          )),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => _displayDialog(context),
+            child: Icon(Icons.add),
+          ),
+        ));
   }
 }
