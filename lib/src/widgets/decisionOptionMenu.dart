@@ -46,7 +46,6 @@ class _DecisionOptionMenuState extends State<DecisionOptionMenu> {
               value: MenuOptions.edit,
               child: Text('Edit'),
             ),
-           
           ],
     );
   }

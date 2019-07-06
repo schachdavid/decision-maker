@@ -1,15 +1,17 @@
+import 'package:decision_maker/src/plainObjects/question.dart';
+import 'package:decision_maker/src/screens/questionDetails.dart';
+import 'package:decision_maker/src/screens/questionDetails.dart';
+import 'package:decision_maker/src/screens/questions.dart';
+import 'package:decision_maker/src/state/questionsState.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/rendering.dart';
 import 'package:uuid/uuid.dart';
 import 'package:provider/provider.dart';
 
 import 'package:decision_maker/src/state/decisionsState.dart';
 import 'package:decision_maker/src/database/db.dart';
 import 'package:decision_maker/src/plainObjects/decision.dart';
-import 'package:decision_maker/src/plainObjects/proArgument.dart';
-import 'package:decision_maker/src/plainObjects/conArgument.dart';
-
-import 'src/questionDetails.dart';
 
 var uuid = new Uuid();
 
@@ -52,17 +54,7 @@ class QuestionsOverwiew extends StatefulWidget {
 }
 
 class _QuestionsOverwiewState extends State<QuestionsOverwiew> {
-  _displayDialog(BuildContext context) {
-    Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => ChangeNotifierProvider(
-                builder: (context) => DecisionsState(),
-                child: Consumer<DecisionsState>(
-                    builder: (context, decisionsState, child) {
-                  return QuestionDetails(decisions: decisionsState.decisions);
-                }))));
-  }
+  _displayDialog(BuildContext context) {}
 
   initState() {
     super.initState();
@@ -71,20 +63,10 @@ class _QuestionsOverwiewState extends State<QuestionsOverwiew> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-        builder: (context) => DecisionsState(),
-        child: Scaffold(
-          appBar: AppBar(
-            title: Text(widget.title),
-          ),
-          body: SingleChildScrollView(
-              child: Container(
-            margin: EdgeInsets.only(bottom: 80.0),
-            child: Column(),
-          )),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _displayDialog(context),
-            child: Icon(Icons.add),
-          ),
-        ));
+        builder: (context) => QuestionsState(),
+        child:
+            Consumer<QuestionsState>(builder: (context, questionsState, child) {
+          return Questions(questions: questionsState.questions);
+        }));
   }
 }

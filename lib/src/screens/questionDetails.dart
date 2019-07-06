@@ -1,42 +1,23 @@
-import 'dart:convert';
-import 'dart:collection';
-
+import 'package:decision_maker/src/plainObjects/decision.dart';
 import 'package:decision_maker/src/state/decisionsState.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-import 'plainObjects/decision.dart';
-import 'DecisionOption.dart';
-import 'newOptionDialog.dart';
+import 'package:decision_maker/src/widgets/DecisionOption.dart';
+import 'package:decision_maker/src/widgets/newDecisionDialog.dart';
 
 var uuid = new Uuid();
 
 class QuestionDetails extends StatelessWidget {
-  QuestionDetails({@required this.decisions});
+  QuestionDetails({@required this.decisions, @required this.title});
 
   final List<Decision> decisions;
 
-  Decision newDecisionOption;
+  final String title;
 
-  final String decisionPersistentKey = 'decisions';
-
-  final GlobalKey<FormState> formKey = new GlobalKey<FormState>();
-
-  void _updateDecisions(List<Decision> newDecisions) {
-    // setState(() {
-    //   decisions = newDecisions;
-    // });
-    // persistDecisions();
-  }
-
-  updateDecision(Decision decision) {
-    // List<Decision> newDecisions = new List.from(decisions);
-    // newDecisions[decision.id] = decision;
-    // _updateDecisions(newDecisions);
-  }
+  final GlobalKey<FormState> newDecisionFormKey = new GlobalKey<FormState>();
 
   int calcScore(Decision decision) {
     int proArgsLength = decision.proArgs != null ? decision.proArgs.length : 0;
@@ -45,14 +26,12 @@ class QuestionDetails extends StatelessWidget {
   }
 
   _displayDialog(BuildContext context, Function addDecision) async {
-    newDecisionOption = new Decision();
     return showDialog(
         context: context,
         builder: (context) {
-          return NewOptionDialog(
-              newDecisionOption: newDecisionOption,
+          return NewDecisionDialog(
               addDecisionOption: addDecision,
-              formKey: formKey);
+              formKey: newDecisionFormKey);
         });
   }
 
@@ -63,7 +42,7 @@ class QuestionDetails extends StatelessWidget {
     sortedDecisions = sortedDecisions.reversed.toList();
     return Scaffold(
       appBar: AppBar(
-        title: Text("random title"),
+        title: Text(this.title),
       ),
       body: SingleChildScrollView(
           child: Container(
@@ -73,14 +52,12 @@ class QuestionDetails extends StatelessWidget {
               .map<Widget>((Decision decision) => DecisionOption(
                   key: ObjectKey(decision),
                   decision: decision,
-                  updateDecision: updateDecision,
                   deleteDecision: Provider.of<DecisionsState>(context).deleteDecision))
               .toList(),
         ),
       )),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _displayDialog(context, Provider.of<DecisionsState>(context).addDecision),
-        tooltip: 'Increment',
         child: Icon(Icons.add),
       ),
     );

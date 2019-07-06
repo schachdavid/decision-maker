@@ -1,14 +1,17 @@
-import 'package:decision_maker/src/database/dao/ConArgumentDAO.dart';
-import 'package:decision_maker/src/database/dao/DecisionDao.dart';
-import 'package:decision_maker/src/database/dao/ProArgumentDao.dart';
+import 'package:decision_maker/src/plainObjects/question.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:io';
 
-import '../plainObjects/conArgument.dart';
-import '../plainObjects/decision.dart';
-import '../plainObjects/proArgument.dart';
+import 'package:decision_maker/src/database/dao/conArgumentDAO.dart';
+import 'package:decision_maker/src/database/dao/decisionDao.dart';
+import 'package:decision_maker/src/database/dao/proArgumentDao.dart';
+import 'package:decision_maker/src/database/dao/questionDao.dart';
+
+import 'package:decision_maker/src/plainObjects/conArgument.dart';
+import 'package:decision_maker/src/plainObjects/decision.dart';
+import 'package:decision_maker/src/plainObjects/proArgument.dart';
 
 class DBProvider {
   DBProvider._();
@@ -17,6 +20,7 @@ class DBProvider {
   static final DecisionDao _decisionDao = DecisionDao();
   static final ProArgumentDao _proArgumentDao = ProArgumentDao();
   static final ConArgumentDao _conArgumentDao = ConArgumentDao();
+  static final QuestionDao _questionDao = QuestionDao();
 
   static Database _database;
 
@@ -28,16 +32,29 @@ class DBProvider {
     return _database;
   }
 
+  _onConfigure(Database db) async {
+    // Add support for cascade delete
+    await db.execute("PRAGMA foreign_keys = ON");
+  }
+
   initDB() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, "decision_maker6.db");
-    return await openDatabase(path, version: 1, onOpen: (db) {},
-        onCreate: (Database db, int version) async {
+    return await openDatabase(path,
+        version: 1,
+        onConfigure: _onConfigure,
+        onOpen: (db) {}, onCreate: (Database db, int version) async {
       await db.execute("PRAGMA foreign_keys = ON;");
+      await db.execute("CREATE TABLE question ("
+          "id INTEGER PRIMARY KEY,"
+          "text TEXT"
+          ")");
       await db.execute("CREATE TABLE decision ("
           "id INTEGER PRIMARY KEY,"
           "title TEXT,"
-          "notes TEXT"
+          "notes TEXT,"
+          "question_id INTEGER,"
+          "FOREIGN KEY (question_id) REFERENCES question(id) ON DELETE CASCADE"
           ")");
       await db.execute("CREATE TABLE pro_argument ("
           "id INTEGER PRIMARY KEY,"
@@ -54,23 +71,31 @@ class DBProvider {
     });
   }
 
-  ///delete the whole database
-  clean() async {
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, "decision_maker.db");
-    await deleteDatabase(path);
-    path = join(documentsDirectory.path, "decision_maker2.db");
-    await deleteDatabase(path);
-    path = join(documentsDirectory.path, "decision_maker3.db");
-    await deleteDatabase(path);
+  newQuestion(Question newQuestion) async {
+    final db = await database;
+    var table = await db.rawQuery("SELECT MAX(id)+1 as id FROM question");
+    int id = table.first["id"];
+    newQuestion.id = id;
+    var res = await db.insert("question", _questionDao.toMap(newQuestion));
+    return res;
+  }
+
+  Future<List<Question>> getAllQuestions() async {
+    final db = await database;
+    var res = await db.query("question");
+    List<Question> list =
+        res.isNotEmpty ? res.map((c) => _questionDao.fromMap(c)).toList() : [];
+    return list;
+  }
+  
+  deleteQuestion(int id) async {
+    final db = await database;
+    var res = await db.delete("question", where: "id = ?", whereArgs: [id]);
+    return res;
   }
 
   newDecision(Decision newDecision) async {
     final db = await database;
-
-    var tmp = await db.rawQuery("SELECT * FROM decision");
-    print(tmp);
-
     var table = await db.rawQuery("SELECT MAX(id)+1 as id FROM decision");
     int id = table.first["id"];
     newDecision.id = id;
@@ -86,7 +111,6 @@ class DBProvider {
 
   deleteDecision(int id) async {
     final db = await database;
-    await db.execute("PRAGMA foreign_keys = ON;");
     var res = await db.delete("decision", where: "id = ?", whereArgs: [id]);
     return res;
   }
@@ -98,6 +122,17 @@ class DBProvider {
         res.isNotEmpty ? res.map((c) => _decisionDao.fromMap(c)).toList() : [];
     return list;
   }
+
+  Future<List<Decision>> getDecisionsForQuestion(int questionId) async {
+    final db = await database;
+    var res =  await db.query("decision",
+        where: "question_id = ?", whereArgs: [questionId]);
+    List<Decision> list =
+        res.isNotEmpty ? res.map((c) => _decisionDao.fromMap(c)).toList() : [];
+    return list;
+  }
+
+
 
   newProArgument(ProArgument newProArgument) async {
     final db = await database;
@@ -128,6 +163,12 @@ class DBProvider {
     return list;
   }
 
+  deleteProArgument(int id) async {
+    final db = await database;
+    var res = await db.delete("pro_argument", where: "id = ?", whereArgs: [id]);
+    return res;
+  }
+
   newConArgument(ConArgument newConArgument) async {
     final db = await database;
     var table = await db.rawQuery("SELECT MAX(id)+1 as id FROM con_argument");
@@ -147,9 +188,8 @@ class DBProvider {
     return list;
   }
 
-   deleteConArgument(int id) async {
+  deleteConArgument(int id) async {
     final db = await database;
-    await db.execute("PRAGMA foreign_keys = ON;");
     var res = await db.delete("con_argument", where: "id = ?", whereArgs: [id]);
     return res;
   }

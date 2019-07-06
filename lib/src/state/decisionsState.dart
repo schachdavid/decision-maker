@@ -8,14 +8,15 @@ import 'package:decision_maker/src/plainObjects/proArgument.dart';
 import 'package:flutter/material.dart';
 
 class DecisionsState extends ChangeNotifier {
-  DecisionsState() {
+  DecisionsState({@required this.questionId}) {
     getDecisionsWithArgs();
   }
 
+  final int questionId;
   final List<Decision> _decisions = [];
 
   void getDecisionsWithArgs() async {
-    List<Decision> newDecisions = await DBProvider.db.getAllDecisions();
+    List<Decision> newDecisions = await DBProvider.db.getDecisionsForQuestion(this.questionId);
 
     //get args for decisions from db
     for (Decision decision in newDecisions) {
@@ -32,62 +33,83 @@ class DecisionsState extends ChangeNotifier {
   }
 
   addDecision(Decision decision) async {
+    decision.questionId = questionId;
     var res = await DBProvider.db.newDecision(decision);
     decision.id = res;
     _decisions.add(decision);
     notifyListeners();
   }
 
-  deleteDecision(Decision decision) {
-    DBProvider.db.deleteDecision(decision.id);
-    for (int i = 0; i < decisions.length; i++) {
-      if (decisions[i].id == decision.id) {
-        _decisions.removeAt(i);
-        break;
+  int _getDecisionIndexByIdFromState(Decision decision) {
+    for (int i = 0; i < _decisions.length; i++) {
+      if (_decisions[i].id == decision.id) {
+        return i;
       }
     }
+    return -1;
+  }
+
+  int _getArgIndexById(List<Argument> args, Argument arg) {
+    for (int i = 0; i < args.length; i++) {
+      if (args[i].id == arg.id) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  deleteDecision(Decision decision) {
+    //delete in database
+    DBProvider.db.deleteDecision(decision.id);
+    //delete in state
+    int decisionIndex = _getDecisionIndexByIdFromState(decision);
+    _decisions.removeAt(decisionIndex);
     notifyListeners();
   }
 
-  ///returns a function which adds proargs for the specific decision
+  ///returns a function which adds proArgs for the specific decision
   Function addProArgForDecisionFactory(Decision decision) {
-    return (Argument arg) {
-      ProArgument proArg =
-          ProArgument(id: arg.id, text: arg.text, decisionId: decision.id);
-      DBProvider.db.newProArgument(proArg);
-      for (int i = 0; i < decisions.length; i++) {
-        if (decisions[i].id == decision.id) {
-          _decisions[i].proArgs.add(proArg);
-          break;
-        }
-      }
+    return (Argument arg) async {
+      ProArgument proArg = ProArgument(text: arg.text, decisionId: decision.id);
+      var id = await DBProvider.db.newProArgument(proArg);
+      proArg.id = id;
+      int decisionIndex = _getDecisionIndexByIdFromState(decision);
+      _decisions[decisionIndex].proArgs.add(proArg);
     };
   }
 
+  deleteProArgForDecisionFactory(Decision decision) {
+    return (ProArgument proArg) {
+      DBProvider.db.deleteProArgument(proArg.id);
+      int decisionIndex = _getDecisionIndexByIdFromState(decision);
+      List<ProArgument> args = _decisions[decisionIndex].proArgs;
+      int argIndex = _getArgIndexById(args, proArg);
+      args.removeAt(argIndex);
+      notifyListeners();
+    };
+  }
+
+  ///returns a function which adds conArgs for the specific decision
   Function addConArgForDecisionFactory(Decision decision) {
-    return (Argument arg) {
+    return (Argument arg) async {
       ConArgument conArg =
           ConArgument(id: arg.id, text: arg.text, decisionId: decision.id);
-      DBProvider.db.newConArgument(conArg);
-      for (int i = 0; i < decisions.length; i++) {
-        if (decisions[i].id == decision.id) {
-          _decisions[i].conArgs.add(conArg);
-          break;
-        }
-      }
+      var id = await DBProvider.db.newConArgument(conArg);
+      conArg.id = id;
+      int decisionIndex = _getDecisionIndexByIdFromState(decision);
+      _decisions[decisionIndex].conArgs.add(conArg);
     };
   }
 
-  
-
-  addConArgForDecision(ConArgument arg, Decision decision) {
-    arg.decisionId = decision.id;
-    DBProvider.db.newConArgument(arg);
-    for (int i = 0; i < decisions.length; i++) {
-      if (decisions[i].id == decision.id) {
-        _decisions[i].conArgs.add(arg);
-      }
-    }
+  deleteConArgForDecisionFactory(Decision decision) {
+    return (ConArgument conArg) {
+      DBProvider.db.deleteConArgument(conArg.id);
+      int decisionIndex = _getDecisionIndexByIdFromState(decision);
+      List<ConArgument> args = _decisions[decisionIndex].conArgs;
+      int argIndex = _getArgIndexById(args, conArg);
+      args.removeAt(argIndex);
+      notifyListeners();
+    };
   }
 
   UnmodifiableListView<Decision> get decisions =>

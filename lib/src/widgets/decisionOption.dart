@@ -1,25 +1,23 @@
 import 'package:decision_maker/src/plainObjects/conArgument.dart';
+import 'package:decision_maker/src/plainObjects/decision.dart';
 import 'package:decision_maker/src/plainObjects/proArgument.dart';
 import 'package:decision_maker/src/state/decisionsState.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'addButton.dart';
-import 'decisionOptionMenu.dart';
-import 'plainObjects/decision.dart';
-import 'newArgumentDialog.dart';
-import 'argument.dart';
+import 'package:decision_maker/src/widgets/addButton.dart';
+import 'package:decision_maker/src/widgets/decisionOptionMenu.dart';
+import 'package:decision_maker/src/widgets/newArgumentDialog.dart';
+import 'package:decision_maker/src/widgets/argument.dart';
 
 class DecisionOption extends StatelessWidget {
   DecisionOption(
       {Key key,
       @required this.decision,
-      @required this.updateDecision,
       @required this.deleteDecision})
       : super(key: key);
 
   final Decision decision;
-  final Function updateDecision;
   final Function deleteDecision;
 
   final GlobalKey<FormState> formKey = new GlobalKey<FormState>();
@@ -28,53 +26,10 @@ class DecisionOption extends StatelessWidget {
     return showDialog(
         context: context,
         builder: (context) {
-          return NewArgumentDialog(addArgument: onAdd, formKey: formKey, title: title);
+          return NewArgumentDialog(
+              addArgument: onAdd, formKey: formKey, title: title);
         });
-  }
-
-  addProArg(ProArgument argument) {
-    Decision newDecision = new Decision(
-        title: decision.title,
-        proArgs: decision.proArgs,
-        conArgs: decision.conArgs,
-        notes: decision.notes,
-        id: decision.id);
-    newDecision.proArgs.add(argument);
-    updateDecision(newDecision);
-  }
-
-  addConArg(ConArgument argument) {
-    Decision newDecision = new Decision(
-        title: decision.title,
-        proArgs: decision.proArgs,
-        conArgs: decision.conArgs,
-        notes: decision.notes,
-        id: decision.id);
-    newDecision.conArgs.add(argument);
-    updateDecision(newDecision);
-  }
-
-  deleteConArgument(int index) {
-    Decision newDecision = new Decision(
-        title: decision.title,
-        proArgs: decision.proArgs,
-        conArgs: decision.conArgs,
-        notes: decision.notes,
-        id: decision.id);
-    newDecision.conArgs.removeAt(index);
-    updateDecision(newDecision);
-  }
-
-  deleteProArgument(int index) {
-    Decision newDecision = new Decision(
-        title: decision.title,
-        proArgs: decision.proArgs,
-        conArgs: decision.conArgs,
-        notes: decision.notes,
-        id: decision.id);
-    newDecision.proArgs.removeAt(index);
-    updateDecision(newDecision);
-  }
+  } 
 
   @override
   Widget build(BuildContext context) {
@@ -89,29 +44,37 @@ class DecisionOption extends StatelessWidget {
         fontSize: 32.0,
         color: Theme.of(context).accentColor,
         fontWeight: FontWeight.w600);
-
     var subTitle = decision.notes != null ? Text(notes) : null;
 
     List<Widget> proArgsWidgets = new List<Widget>();
-    for(var i = 0; i < proArgs.length; i++){
-        proArgsWidgets.add(new Argument(key: ObjectKey(proArgs[i]),text: proArgs[i].text, onDelete: () => deleteProArgument(i),));
+    Function deleteProArg = Provider.of<DecisionsState>(context)
+        .deleteProArgForDecisionFactory(decision);
+    for (var i = 0; i < proArgs.length; i++) {
+      proArgsWidgets.add(new Argument(
+          key: ObjectKey(proArgs[i]),
+          text: proArgs[i].text,
+          onDelete: () => deleteProArg(proArgs[i])));
     }
 
     List<Widget> conArgsWidgets = new List<Widget>();
-    for(var i = 0; i < conArgs.length; i++){
-        conArgsWidgets.add(new Argument(key: ObjectKey(conArgs[i]),text: conArgs[i].text, onDelete: () => deleteConArgument(i),));
+     Function deleteConArg = Provider.of<DecisionsState>(context)
+        .deleteConArgForDecisionFactory(decision);
+    for (var i = 0; i < conArgs.length; i++) {
+      conArgsWidgets.add(new Argument(
+        key: ObjectKey(conArgs[i]),
+        text: conArgs[i].text,
+        onDelete: () => deleteConArg(conArgs[i]),
+      ));
     }
-    
 
     return Container(
       width: MediaQuery.of(context).size.width,
       child: Card(
         shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(0),
-              ),
+          borderRadius: BorderRadius.circular(0),
+        ),
         elevation: 0,
         margin: EdgeInsets.only(top: 8.0),
-
         child: Padding(
           padding: EdgeInsets.only(top: 8.0),
           child: Column(
@@ -134,8 +97,11 @@ class DecisionOption extends StatelessWidget {
                             children: <Widget>[
                           Text('Pro'),
                           AddButton(
-                              onPress: () =>
-                                  _displayDialog(context, Provider.of<DecisionsState>(context).addProArgForDecisionFactory(decision), "Pro Argument")),
+                              onPress: () => _displayDialog(
+                                  context,
+                                  Provider.of<DecisionsState>(context)
+                                      .addProArgForDecisionFactory(decision),
+                                  "Pro Argument")),
                         ])),
                   )),
               Container(
@@ -151,8 +117,11 @@ class DecisionOption extends StatelessWidget {
                             children: <Widget>[
                           Text('Con'),
                           AddButton(
-                              onPress: () =>
-                                  _displayDialog(context, Provider.of<DecisionsState>(context).addConArgForDecisionFactory(decision), "Con Argument")),
+                              onPress: () => _displayDialog(
+                                  context,
+                                  Provider.of<DecisionsState>(context)
+                                      .addConArgForDecisionFactory(decision),
+                                  "Con Argument")),
                         ])),
                   )),
               Container(

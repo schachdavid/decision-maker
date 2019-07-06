@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:decision_maker/src/plainObjects/decision.dart';
 
 
@@ -9,13 +7,15 @@ class DecisionDao {
     decision.id = query["id"];
     decision.title = query["title"];
     decision.notes = query["notes"];
+    decision.questionId = query["question_id"];
     return decision;
   }
 
   Map<String, dynamic> toMap(Decision object) {
     return <String, dynamic>{
       "title": object.title,
-      "notes": object.notes
+      "notes": object.notes,
+      "question_id": object.questionId
     };
   }
 }

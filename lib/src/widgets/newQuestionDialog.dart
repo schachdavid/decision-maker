@@ -1,39 +1,32 @@
+import 'package:decision_maker/src/plainObjects/decision.dart';
+import 'package:decision_maker/src/plainObjects/question.dart';
 import 'package:flutter/material.dart';
-import 'plainObjects/decision.dart';
 
-class NewOptionDialog extends StatelessWidget {
-  NewOptionDialog(
-      {@required this.newDecisionOption,
-      @required this.addDecisionOption,
-      @required this.formKey});
+class NewQuestionDialog extends StatelessWidget {
+  NewQuestionDialog({@required this.addQuestion, @required this.formKey});
 
-  final Decision newDecisionOption;
-  final addDecisionOption;
+  final Question newQuestion = new Question();
+  final addQuestion;
   final formKey;
 
   void _submitForm() {
     final FormState form = formKey.currentState;
-    newDecisionOption.proArgs = [];
-    newDecisionOption.conArgs = [];
     form.save();
-    addDecisionOption(newDecisionOption);
+    addQuestion(newQuestion);
   }
 
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('New Option'),
+      title: Text('New Question'),
       content: new Form(
           key: this.formKey,
           child: new Container(
-            height: 130.0,
+            height: 70.0,
             child: new Column(
               children: <Widget>[
                 new TextFormField(
-                    decoration: new InputDecoration(labelText: 'Title'),
-                    onSaved: (val) => newDecisionOption.title = val),
-                new TextFormField(
-                    decoration: new InputDecoration(labelText: 'Notes'),
-                    onSaved: (val) => newDecisionOption.notes = val),
+                    decoration: new InputDecoration(labelText: 'Text'),
+                    onSaved: (val) => newQuestion.text = val),
               ],
             ),
           )),
